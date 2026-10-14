@@ -17,7 +17,7 @@ html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -a
 <iframe id="report-view" title="InstructAR 研究周报" allow="fullscreen" hidden></iframe><div id="asset-error" hidden></div>
 <script>'use strict';
 (async()=>{
- const DESC={"url":"sealed/ccac9cc8b30e78ffc289fd566616ae8675f73187d1c194e534f31be87a8ba830.bin","encryptedSha256":"ccac9cc8b30e78ffc289fd566616ae8675f73187d1c194e534f31be87a8ba830","encryptedBytes":26895,"plainSha256":"4e236adf24cca9cea5cd9b46419ba22c17fccf55fd3c82c56f1420d420ca52fc","plainBytes":121955,"encoding":"gzip","mime":"application/json"},base=new URL('./',location.href),STORE='lr-instructar-key';
+ const DESC={"url":"sealed/02eb3b4b326b552b46118f1f3ca55a5b8416e64e17f448c27d73e72bdbfde26d.bin","encryptedSha256":"02eb3b4b326b552b46118f1f3ca55a5b8416e64e17f448c27d73e72bdbfde26d","encryptedBytes":31622,"plainSha256":"5826cb063f2c8b6c4340d0192099fa882cb9be1cbabd517b2dbcf2c10fda581a","plainBytes":152726,"encoding":"gzip","mime":"application/json"},base=new URL('./',location.href),STORE='lr-instructar-key';
  const status=document.getElementById('status'),progress=document.getElementById('progress');
  const mark=(text,value)=>{status.textContent=text;if(Number.isFinite(value)){progress.max=1;progress.value=value;}else progress.removeAttribute('value');};
  const from64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -57,7 +57,7 @@ html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -a
    if(e.data?.type==='instructar-need-session-v2'&&e.data.session===session)send(e.source).catch(()=>{});
    if(e.data?.type==='instructar-asset-error-v2'&&e.data.session===session){const banner=document.getElementById('asset-error');banner.textContent='部分资源加载失败，请刷新页面重试。';banner.hidden=false;}
   });
-  const workerURL=new URL('worker.js?v=40881207207822cf',base);
+  const workerURL=new URL('worker.js?v=c37f48074bd448f1',base);
   const registration=await navigator.serviceWorker.register(workerURL,{scope:base.pathname,updateViaCache:'none'});
   const pending=registration.installing||registration.waiting;
   if(pending&&pending.state!=='activated')await new Promise((resolve,reject)=>{

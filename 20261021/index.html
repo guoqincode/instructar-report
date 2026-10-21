@@ -17,7 +17,7 @@ html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -a
 <iframe id="report-view" title="InstructAR 研究周报" allow="fullscreen" hidden></iframe><div id="asset-error" hidden></div>
 <script>'use strict';
 (async()=>{
- const DESC={"url":"sealed/ecdd8370c4ef9e4f622594cc5ce6e97dfd3b246d48944fe18962b0dc03f9f535.bin","encryptedSha256":"ecdd8370c4ef9e4f622594cc5ce6e97dfd3b246d48944fe18962b0dc03f9f535","encryptedBytes":44031,"plainSha256":"ccc2f5a4cfbebb362144dc1b055f89b514b8b7cef290aa63424ec6fb108bc22c","plainBytes":238543,"encoding":"gzip","mime":"application/json"},base=new URL('./',location.href),STORE='lr-instructar-key';
+ const DESC={"url":"sealed/3c66ad484b6c89484adfb59841ebedb2229a5134e955e26b5a50297230c41e64.bin","encryptedSha256":"3c66ad484b6c89484adfb59841ebedb2229a5134e955e26b5a50297230c41e64","encryptedBytes":50635,"plainSha256":"91c142fd8304bf6df6c02998e4a9e3a8097981ae6b730c218ace29136db95576","plainBytes":271034,"encoding":"gzip","mime":"application/json"},base=new URL('./',location.href),STORE='lr-instructar-key';
  const status=document.getElementById('status'),progress=document.getElementById('progress');
  const mark=(text,value)=>{status.textContent=text;if(Number.isFinite(value)){progress.max=1;progress.value=value;}else progress.removeAttribute('value');};
  const from64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));

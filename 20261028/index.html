@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"><title>Private report</title>
+<style>
+html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#loading{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:32px}
+#loading[hidden]{display:none}
+#loading h1{font-size:22px;font-weight:550;letter-spacing:-.02em;margin:0 0 14px}
+#status{color:#707783;font-size:14px;min-height:24px}
+#progress{width:280px;height:3px;margin:18px auto;border:0;accent-color:#0071e3}
+#note{font-size:12px;color:#969da7;margin-top:15px}
+#report-view{display:block;width:100%;height:100%;border:0}#report-view[hidden]{display:none}
+#asset-error{position:fixed;bottom:18px;left:24px;right:24px;padding:12px 20px;border-radius:9px;background:#fff3e0;color:#735c2d;z-index:1000;font-size:13px}
+</style></head>
+<body><div id="loading"><h1 id="heading">正在打开加密周报</h1><div id="status">准备读取正文…</div><progress id="progress"></progress><div id="note">视频按需加载，密钥保留在浏览器内。</div></div>
+<iframe id="report-view" title="InstructAR 研究周报" allow="fullscreen" hidden></iframe><div id="asset-error" hidden></div>
+<script>'use strict';
+(async()=>{
+ const DESC={"url":"sealed/195204bf6ae5cac9e49653768f4b25b01f57d66ce49ceff3ba66180a5e870250.bin","encryptedSha256":"195204bf6ae5cac9e49653768f4b25b01f57d66ce49ceff3ba66180a5e870250","encryptedBytes":181482,"plainSha256":"f4516200dea4079945c61c29f2283437220ef21f3c7db028e4e6f38ba1a8298a","plainBytes":668873,"encoding":"gzip","mime":"application/json"},base=new URL('./',location.href),STORE='lr-instructar-key';
+ const status=document.getElementById('status'),progress=document.getElementById('progress');
+ const mark=(text,value)=>{status.textContent=text;if(Number.isFinite(value)){progress.max=1;progress.value=value;}else progress.removeAttribute('value');};
+ const from64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+ const hex=buffer=>Array.from(new Uint8Array(buffer),b=>b.toString(16).padStart(2,'0')).join('');
+ const hash=async b=>hex(await crypto.subtle.digest('SHA-256',b));
+ const session=hex(crypto.getRandomValues(new Uint8Array(16)));
+ let key,manifest;
+ async function send(worker){
+  return new Promise((resolve,reject)=>{
+   const channel=new MessageChannel(),timer=setTimeout(()=>reject(Error('加密资源服务未响应，请刷新页面。')),15000);
+   channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();e.data?.ok?resolve():reject(Error(e.data?.error||'资源服务未就绪'));};
+   worker.postMessage({type:'instructar-init-v2',session,key,manifest,base:base.href},[channel.port2]);
+  });
+ }
+ try{
+  let token=location.hash.match(/[#&]k=([A-Za-z0-9_-]{16,})/)?.[1];
+  if(token){try{localStorage.setItem(STORE,token);}catch{}}
+  else{try{token=localStorage.getItem(STORE);}catch{}}
+  if(!token)throw Error('请使用包含 #k= 的完整访问链接。');
+  if(!crypto.subtle||!navigator.serviceWorker||!globalThis.DecompressionStream)throw Error('请使用新版 Chrome、Edge 或 Safari 打开此链接。');
+  const started=performance.now();mark('下载加密目录…',0);
+  const response=await fetch(new URL(DESC.url,base),{cache:'force-cache'});if(!response.ok)throw Error('下载失败（'+response.status+'），请稍后刷新。');
+  const reader=response.body.getReader(),chunks=[];let count=0;
+  for(;;){const {value,done}=await reader.read();if(done)break;chunks.push(value);count+=value.length;mark('下载加密目录 · '+Math.round(count/1024)+' KB',Math.min(1,count/DESC.encryptedBytes));}
+  const buf=new Uint8Array(count);let at=0;for(const c of chunks){buf.set(c,at);at+=c.length;}
+  if(await hash(buf)!==DESC.encryptedSha256||new TextDecoder().decode(buf.slice(0,8))!=='LRSEAL1\0')throw Error('加密目录校验失败，请刷新重试。');
+  mark('验证密钥…');
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(token),'PBKDF2',false,['deriveKey']);
+  key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:buf.slice(8,24),iterations:200000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(24,36),additionalData:buf.slice(0,8)},key,buf.slice(36));
+  const unpacked=await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  if(await hash(unpacked)!==DESC.plainSha256)throw Error('目录内容校验失败。');
+  manifest=JSON.parse(new TextDecoder().decode(unpacked));manifest.saltHex=hex(buf.slice(8,24));
+  if(manifest.format!=='instructar-lazy-v2')throw Error('页面版本不匹配。');
+  mark('准备按需视频加载…');
+  navigator.serviceWorker.addEventListener('message',e=>{
+   if(e.data?.type==='instructar-need-session-v2'&&e.data.session===session)send(e.source).catch(()=>{});
+   if(e.data?.type==='instructar-asset-error-v2'&&e.data.session===session){const banner=document.getElementById('asset-error');banner.textContent='部分资源加载失败，请刷新页面重试。';banner.hidden=false;}
+  });
+  const workerURL=new URL('worker.js?v=c37f48074bd448f1',base);
+  const registration=await navigator.serviceWorker.register(workerURL,{scope:base.pathname,updateViaCache:'none'});
+  const pending=registration.installing||registration.waiting;
+  if(pending&&pending.state!=='activated')await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(Error('资源服务更新超时，请刷新。')),15000);
+   const check=()=>{if(pending.state==='activated'){clearTimeout(timer);resolve();}else if(pending.state==='redundant'){clearTimeout(timer);reject(Error('资源服务更新失败。'));}};
+   pending.addEventListener('statechange',check);check();
+  });
+  if(navigator.serviceWorker.controller?.scriptURL!==workerURL.href){
+   await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(Error('浏览器资源服务初始化超时，请刷新。')),15000);
+    const check=()=>{if(navigator.serviceWorker.controller?.scriptURL===workerURL.href){clearTimeout(timer);navigator.serviceWorker.removeEventListener('controllerchange',check);resolve();}};
+    navigator.serviceWorker.addEventListener('controllerchange',check);check();
+   });
+  }
+  await send(navigator.serviceWorker.controller);
+  const pageURL=name=>new URL('__private__/'+session+'/page/'+encodeURIComponent(name),base).href;
+  window.addEventListener('message',e=>{
+   if(e.origin!==location.origin||e.data?.type!=='instructar-report-page'||!Object.hasOwn(manifest.pages,e.data.page))return;
+   document.getElementById('report-view').src=pageURL(e.data.page)+(e.data.fragment?'#'+encodeURIComponent(e.data.fragment):'');
+  });
+  mark('打开正文…');
+  const check=await fetch(pageURL('report.html'),{cache:'no-store'});if(!check.ok)throw Error('正文加载失败，请刷新重试。');
+  // The worker keeps the verified document in memory; navigation does not decrypt it again.
+  await check.arrayBuffer();
+  const frame=document.getElementById('report-view');
+  frame.onload=()=>{document.getElementById('loading').hidden=true;frame.hidden=false;document.title='InstructAR · 10.28 研究周报';window.__reportStartupMilliseconds=performance.now()-started;};
+  frame.src=pageURL('report.html');
+ }catch(error){
+  document.getElementById('heading').textContent='暂时无法打开';
+  mark(error.name==='OperationError'?'密钥不匹配，请使用原完整链接。':error.message);
+  progress.hidden=true;
+ }
+})();
+</script></body></html>

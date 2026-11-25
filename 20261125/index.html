@@ -17,7 +17,7 @@ html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -a
 <iframe id="report-view" title="InstructAR 研究周报" allow="fullscreen" hidden></iframe><div id="asset-error" hidden></div>
 <script>'use strict';
 (async()=>{
- const DESC={"url":"sealed/2aa5c589f432b66fe5168b069e1f095cd6e01f28be71fc88e29358d9edd8e1ef.bin","encryptedSha256":"2aa5c589f432b66fe5168b069e1f095cd6e01f28be71fc88e29358d9edd8e1ef","encryptedBytes":238453,"plainSha256":"6fd0b0e034be70155f03dbe752b30c44da944b1f17709819ef0dcf22b7f19812","plainBytes":1008246,"encoding":"gzip","mime":"application/json;charset=utf-8"},base=new URL('./',location.href),STORE='lr-instructar-key';
+ const DESC={"encoding":"gzip","encryptedBytes":238453,"encryptedSha256":"2aa5c589f432b66fe5168b069e1f095cd6e01f28be71fc88e29358d9edd8e1ef","mime":"application/json;charset=utf-8","plainBytes":1008246,"plainSha256":"6fd0b0e034be70155f03dbe752b30c44da944b1f17709819ef0dcf22b7f19812","url":"sealed/2aa5c589f432b66fe5168b069e1f095cd6e01f28be71fc88e29358d9edd8e1ef.bin"},base=new URL('./',location.href),STORE='lr-instructar-key';
  const status=document.getElementById('status'),progress=document.getElementById('progress');
  const mark=(text,value)=>{status.textContent=text;if(Number.isFinite(value)){progress.max=1;progress.value=value;}else progress.removeAttribute('value');};
  const from64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -57,7 +57,7 @@ html,body{margin:0;height:100%;background:#fafafa;color:#24262b;font:15px/1.7 -a
    if(e.data?.type==='instructar-need-session-v2'&&e.data.session===session)send(e.source).catch(()=>{});
    if(e.data?.type==='instructar-asset-error-v2'&&e.data.session===session){const banner=document.getElementById('asset-error');banner.textContent='部分资源加载失败，请刷新页面重试。';banner.hidden=false;}
   });
-  const workerURL=new URL('worker.js?v=b733b3e509b8007a',base);
+  const workerURL=new URL('worker.js?v=c3d16a84458910f9',base);
   const registration=await navigator.serviceWorker.register(workerURL,{scope:base.pathname,updateViaCache:'none'});
   const pending=registration.installing||registration.waiting;
   if(pending&&pending.state!=='activated')await new Promise((resolve,reject)=>{

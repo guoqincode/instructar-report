@@ -71,6 +71,8 @@ async function handle(request,path){
    let html=new TextDecoder().decode(plain);
    html=html.replace(/__IR_RESOURCE_([A-Za-z0-9_-]+)__/g,(_,key)=>{if(!Object.hasOwn(state.manifest.resources,key))throw Error('Missing asset');return root+'asset/'+key;});
    html=html.replace(/__IR_PAGE_([a-z0-9_]+\.html)__/g,(_,p)=>{if(!Object.hasOwn(state.manifest.pages,p))throw Error('Missing page');return root+'page/'+encodeURIComponent(p);});
+   if(name==='report.html')html=html.replace(/<video\b[^>]*>/gi,tag=>
+      /\bid="hl-player"/.test(tag)?tag:tag.replace(/\bpreload="(?:auto|metadata)"/i,'preload="none"'));
    plain=new TextEncoder().encode(html).buffer;
   }
   return rangeResponse(plain,descriptor.mime,request.headers.get('range'),request.method==='HEAD');
